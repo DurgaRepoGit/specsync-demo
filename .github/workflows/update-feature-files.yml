@@ -13,9 +13,7 @@ jobs:
     uses: ./.github/workflows/specsync-update-feature-files.yml
     with:
       test_directory: tests
-      # TODO: replace with your Azure DevOps project URL,
-      # e.g. https://dev.azure.com/<org>/<project>
-      project_url: <YOUR_ADO_PROJECT_URL>
+      project_url: https://dev.azure.com/ADSP-Org-A03/CII-Surveillance
     secrets:
       SPECSYNC_PERSONAL_ACCESS_TOKEN: ${{ secrets.SPECSYNC_PERSONAL_ACCESS_TOKEN }}
       SPECSYNC_LICENSE_KEY: ${{ secrets.SPECSYNC_LICENSE_KEY }}
