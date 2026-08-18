@@ -1,0 +1,5 @@
+specsync.lic
+specsync_create_tests.json
+.config/
+bin/
+obj/

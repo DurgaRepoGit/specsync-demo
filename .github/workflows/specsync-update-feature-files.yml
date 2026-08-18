@@ -1,0 +1,215 @@
+---
+name: Reusable SpecSync Update Feature Files Workflow
+
+on:
+  workflow_call:
+    inputs:
+      workflow_runner:
+        description: Workflow Runner Details
+        type: string
+        required: false
+        default: '["ubuntu-latest"]'
+
+      test_directory:
+        description: Directory containing test specifications
+        type: string
+        required: true
+
+      dotnet_version:
+        description: .NET version to use
+        type: string
+        required: false
+        default: "8.0.x"
+
+      commit_message:
+        description: Commit message for the changes
+        type: string
+        required: false
+        default: "chore: Update feature files with test case IDs via SpecSync [skip ci]"
+
+      project_url:
+        description: Azure DevOps project URL
+        type: string
+        required: true
+
+      local_tags:
+        description: Local tags filter for test synchronization
+        type: string
+        required: false
+        default: "(@manual or @automated) and @system_requirement_* and @brite_*"
+
+      test_case_tag_prefix:
+        description: Test case tag prefix
+        type: string
+        required: false
+        default: "TestCaseId"
+
+      specsync_azuredevops_version:
+        description: SpecSync Azure DevOps Tool Version
+        type: string
+        required: false
+        default: "3.4.32"
+
+    secrets:
+      SPECSYNC_PERSONAL_ACCESS_TOKEN:
+        description: SpecSync Personal Access Token
+        required: true
+      SPECSYNC_LICENSE_KEY:
+        description: SpecSync License Key
+        required: true
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: read
+
+jobs:
+  update-feature-files:
+    name: Update Feature Files with Test Case IDs
+    runs-on: ${{ fromJSON(inputs.workflow_runner) }}
+    steps:
+      - name: Log Workflow Input
+        run: |
+          echo "Test Directory: ${{ inputs.test_directory }}"
+          echo "Project URL:    ${{ inputs.project_url }}"
+          echo "Local Tags:     ${{ inputs.local_tags }}"
+          echo "Prefix:         ${{ inputs.test_case_tag_prefix }}"
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ github.token }}
+
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ inputs.dotnet_version }}
+
+      - name: Create SpecSync license file
+        run: |
+          echo "${{ secrets.SPECSYNC_LICENSE_KEY }}" > ${{ inputs.test_directory }}/specsync.lic
+
+      - name: Create SpecSync configuration
+        run: |
+          cat > ${{ inputs.test_directory }}/specsync_create_tests.json << 'EOF'
+          {
+            "$schema": "https://schemas.specsolutions.eu/specsync4azuredevops-config-latest.json",
+            "compatibilityVersion": "${{ inputs.specsync_azuredevops_version }}",
+            "toolSettings": { "licensePath": "specsync.lic" },
+            "remote": { "projectUrl": "${{ inputs.project_url }}" },
+            "local":  { "tags": "${{ inputs.local_tags }}" },
+            "synchronization": {
+              "testCaseTagPrefix": "${{ inputs.test_case_tag_prefix }}",
+              "tagPrefixSeparators": ["_"],
+              "format": {
+                "useExpectedResult": true,
+                "emptyActionValue": "N/A",
+                "emptyExpectedResultValue": "N/A",
+                "prefixTitle": false
+              },
+              "links": [
+                {
+                  "tagPrefix": "system_requirement",
+                  "targetType": "System Requirement",
+                  "relationship": "Tests"
+                }
+              ]
+            }
+          }
+          EOF
+
+      - name: Setup SpecSync as local tool
+        run: |
+          dotnet new tool-manifest
+          dotnet tool install SpecSync.AzureDevOps --version "${{ inputs.specsync_azuredevops_version }}"
+          dotnet tool restore
+          dotnet specsync version
+
+      - name: Configure Git
+        run: |
+          git config --global user.email "action@github.com"
+          git config --global user.name  "GitHub Action"
+
+      - name: SpecSync Dry Run Validation
+        id: specsync_dryrun
+        env:
+          SPECSYNC_PERSONAL_ACCESS_TOKEN: ${{ secrets.SPECSYNC_PERSONAL_ACCESS_TOKEN }}
+        run: |
+          cd "${{ inputs.test_directory }}"
+          set +e
+          dotnet specsync push specsync_create_tests.json --user $SPECSYNC_PERSONAL_ACCESS_TOKEN --zeroExitCodeForWarnings --dryRun
+          RC=$?
+          set -e
+          if [ $RC -eq 0 ]; then
+            echo "dryrun_success=true"  >> "$GITHUB_OUTPUT"
+          else
+            echo "dryrun_success=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Execute SpecSync push
+        id: specsync_execution
+        if: steps.specsync_dryrun.outputs.dryrun_success == 'true'
+        env:
+          SPECSYNC_PERSONAL_ACCESS_TOKEN: ${{ secrets.SPECSYNC_PERSONAL_ACCESS_TOKEN }}
+        run: |
+          cd "${{ inputs.test_directory }}"
+          set +e
+          dotnet specsync push specsync_create_tests.json --user $SPECSYNC_PERSONAL_ACCESS_TOKEN --zeroExitCodeForWarnings
+          RC=$?
+          set -e
+          if [ $RC -eq 0 ]; then
+            echo "specsync_success=true"  >> "$GITHUB_OUTPUT"
+          else
+            echo "specsync_success=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check for changes and commit
+        id: changes_found
+        if: always() && steps.specsync_dryrun.outputs.dryrun_success == 'true'
+        run: |
+          git add "**/*.feature"
+          if git diff --staged --quiet; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          else
+            BRANCH=$(git rev-parse --abbrev-ref HEAD)
+            if [ "$BRANCH" = "HEAD" ]; then
+              git checkout ${{ github.head_ref }}
+              BRANCH=${{ github.head_ref }}
+            fi
+            git commit -m "${{ inputs.commit_message }}"
+            git push origin "$BRANCH"
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Comment on PR (success)
+        if: always() && steps.changes_found.outputs.has_changes == 'true' && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const body = `## SpecSync Feature File Update\n\nFeature files were updated with @${{ inputs.test_case_tag_prefix }} tags.\n\n- Project: ${{ inputs.project_url }}\n- Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`;
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body
+            });
+
+      - name: Comment on PR (failure)
+        if: (steps.specsync_dryrun.outputs.dryrun_success == 'false' || steps.specsync_execution.outputs.specsync_success == 'false') && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const body = `## SpecSync Failed\n\nCheck the workflow logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`;
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body
+            });
+
+      - name: Fail job on error
+        if: steps.specsync_dryrun.outputs.dryrun_success == 'false' || steps.specsync_execution.outputs.specsync_success == 'false'
+        run: exit 1
