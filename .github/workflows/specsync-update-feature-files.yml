@@ -50,13 +50,23 @@ on:
         required: false
         default: "3.4.32"
 
+      mock:
+        description: >
+          Run without contacting Azure DevOps. Skips the license file, the
+          SpecSync tool install and both push calls; instead injects synthetic
+          test case ID tags so the commit-back and PR-comment paths can be
+          exercised without a SpecSync license or ADO PAT.
+        type: boolean
+        required: false
+        default: false
+
     secrets:
       SPECSYNC_PERSONAL_ACCESS_TOKEN:
-        description: SpecSync Personal Access Token
-        required: true
+        description: SpecSync Personal Access Token (not needed when mock is true)
+        required: false
       SPECSYNC_LICENSE_KEY:
-        description: SpecSync License Key
-        required: true
+        description: SpecSync License Key (not needed when mock is true)
+        required: false
 
 permissions:
   contents: write
@@ -74,6 +84,7 @@ jobs:
           echo "Project URL:    ${{ inputs.project_url }}"
           echo "Local Tags:     ${{ inputs.local_tags }}"
           echo "Prefix:         ${{ inputs.test_case_tag_prefix }}"
+          echo "Mock mode:      ${{ inputs.mock }}"
 
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -82,11 +93,13 @@ jobs:
           token: ${{ github.token }}
 
       - name: Set up .NET Core
+        if: ${{ !inputs.mock }}
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ inputs.dotnet_version }}
 
       - name: Create SpecSync license file
+        if: ${{ !inputs.mock }}
         run: |
           echo "${{ secrets.SPECSYNC_LICENSE_KEY }}" > ${{ inputs.test_directory }}/specsync.lic
 
@@ -120,6 +133,7 @@ jobs:
           EOF
 
       - name: Setup SpecSync as local tool
+        if: ${{ !inputs.mock }}
         run: |
           dotnet new tool-manifest
           dotnet tool install SpecSync.AzureDevOps --version "${{ inputs.specsync_azuredevops_version }}"
@@ -137,6 +151,18 @@ jobs:
           SPECSYNC_PERSONAL_ACCESS_TOKEN: ${{ secrets.SPECSYNC_PERSONAL_ACCESS_TOKEN }}
         run: |
           cd "${{ inputs.test_directory }}"
+
+          if [ "${{ inputs.mock }}" = "true" ]; then
+            echo "MOCK MODE: skipping Azure DevOps dry run."
+            echo "Generated config that would have been used:"
+            cat specsync_create_tests.json
+            echo ""
+            echo "Feature files discovered:"
+            find . -name '*.feature' -print
+            echo "dryrun_success=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
           set +e
           dotnet specsync push specsync_create_tests.json --user $SPECSYNC_PERSONAL_ACCESS_TOKEN --zeroExitCodeForWarnings --dryRun
           RC=$?
@@ -151,8 +177,59 @@ jobs:
         id: specsync_execution
         if: steps.specsync_dryrun.outputs.dryrun_success == 'true'
         env:
+          TEST_DIRECTORY: ${{ inputs.test_directory }}
+          TAG_PREFIX: ${{ inputs.test_case_tag_prefix }}
           SPECSYNC_PERSONAL_ACCESS_TOKEN: ${{ secrets.SPECSYNC_PERSONAL_ACCESS_TOKEN }}
         run: |
+          if [ "${{ inputs.mock }}" = "true" ]; then
+            echo "MOCK MODE: injecting synthetic @${TAG_PREFIX}_* tags instead of pushing to ADO."
+            python3 - <<'PY'
+          import os, pathlib, re
+
+          root   = pathlib.Path(os.environ["TEST_DIRECTORY"])
+          prefix = os.environ["TAG_PREFIX"]
+          scenario_re = re.compile(r"^\s*(Scenario|Scenario Outline|Example):")
+          next_id = 9001
+
+          for path in sorted(root.rglob("*.feature")):
+              lines = path.read_text(encoding="utf-8").splitlines()
+              out, changed = [], False
+
+              for line in lines:
+                  if not scenario_re.match(line):
+                      out.append(line)
+                      continue
+
+                  # Collect the contiguous tag block already emitted above this scenario.
+                  start = len(out)
+                  while start > 0 and out[start - 1].strip().startswith("@"):
+                      start -= 1
+                  tag_block = out[start:]
+
+                  if any(f"@{prefix}_" in t for t in tag_block):
+                      out.append(line)
+                      continue
+
+                  tag = f"@{prefix}_{next_id}"
+                  next_id += 1
+                  if tag_block:
+                      out[-1] = f"{out[-1]} {tag}"
+                  else:
+                      indent = line[: len(line) - len(line.lstrip())]
+                      out.append(f"{indent}{tag}")
+                  out.append(line)
+                  changed = True
+
+              if changed:
+                  path.write_text("\n".join(out) + "\n", encoding="utf-8")
+                  print(f"tagged: {path}")
+              else:
+                  print(f"unchanged (already tagged): {path}")
+          PY
+            echo "specsync_success=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
           cd "${{ inputs.test_directory }}"
           set +e
           dotnet specsync push specsync_create_tests.json --user $SPECSYNC_PERSONAL_ACCESS_TOKEN --zeroExitCodeForWarnings

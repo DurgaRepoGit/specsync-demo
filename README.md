@@ -25,11 +25,43 @@ tests/Features/
      branch,
    - comments on the PR with the outcome.
 
-## Setup before first run
+## Mock mode (no secrets required)
 
-1. **Edit the caller** `./.github/workflows/update-feature-files.yml` and
-   replace `<YOUR_ADO_PROJECT_URL>` with your Azure DevOps project URL, e.g.
-   `https://dev.azure.com/<org>/<project>`.
+The reusable workflow takes a `mock` boolean input. When `true` it:
+
+- skips the license file, the `setup-dotnet` step and the `SpecSync.AzureDevOps`
+  tool install,
+- skips both `dotnet specsync push` calls (dry-run and real), so nothing
+  contacts Azure DevOps,
+- still generates and prints `specsync_create_tests.json` so you can inspect
+  exactly what would have been sent,
+- injects synthetic `@TestCaseId_9001`, `@TestCaseId_9002`, ... tags onto any
+  scenario that doesn't already have one,
+- then runs the normal commit-back and PR-comment steps.
+
+This lets you exercise the whole pipeline without a SpecSync license or an ADO
+PAT. The tag injection is idempotent - re-running leaves already-tagged
+scenarios alone.
+
+The caller currently defaults to mock mode:
+
+```yaml
+mock: ${{ github.event_name != 'workflow_dispatch' || inputs.mock }}
+```
+
+i.e. PRs always run mocked, and `workflow_dispatch` exposes a checkbox
+(defaulting to on). Once you have both secrets, hardcode `mock: false`.
+
+Trigger a mock run:
+
+```powershell
+gh workflow run "Update Feature Files (Caller)" --repo <owner>/specsync-demo --ref main -f mock=true
+gh run watch --repo <owner>/specsync-demo
+```
+
+## Setup before a real (non-mock) run
+
+1. **Set `mock: false`** in `./.github/workflows/update-feature-files.yml`.
 2. **Add repo secrets** (Settings -> Secrets and variables -> Actions):
    - `SPECSYNC_PERSONAL_ACCESS_TOKEN` - ADO PAT with test plan write access
    - `SPECSYNC_LICENSE_KEY` - your SpecSync license key contents

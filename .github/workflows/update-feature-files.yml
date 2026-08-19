@@ -7,6 +7,12 @@ on:
     paths:
       - "tests/**/*.feature"
   workflow_dispatch:
+    inputs:
+      mock:
+        description: Run in mock mode (no Azure DevOps calls, no secrets needed)
+        type: boolean
+        required: false
+        default: true
 
 jobs:
   specsync:
@@ -14,6 +20,9 @@ jobs:
     with:
       test_directory: tests
       project_url: https://dev.azure.com/ADSP-Org-A03/CII-Surveillance
+      # Mock on PRs too, since the SpecSync license / ADO PAT are not available
+      # in this repo. Flip to `false` once both secrets are configured.
+      mock: ${{ github.event_name != 'workflow_dispatch' || inputs.mock }}
     secrets:
       SPECSYNC_PERSONAL_ACCESS_TOKEN: ${{ secrets.SPECSYNC_PERSONAL_ACCESS_TOKEN }}
       SPECSYNC_LICENSE_KEY: ${{ secrets.SPECSYNC_LICENSE_KEY }}
