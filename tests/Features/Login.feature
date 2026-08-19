@@ -4,7 +4,7 @@ Feature: User Login
   I want to log in to the application
   So that I can access my account
 
-  @brite_login_success
+  @brite_login_success @TestCaseId_9001
   Scenario: Successful login with valid credentials
     Given the user is on the login page
     When the user enters valid username "alice" and password "secret"
@@ -12,7 +12,7 @@ Feature: User Login
     Then the user is redirected to the dashboard
     And a welcome message "Welcome, alice" is displayed
 
-  @brite_login_invalid_password
+  @brite_login_invalid_password @TestCaseId_9002
   Scenario: Failed login with invalid password
     Given the user is on the login page
     When the user enters valid username "alice" and password "wrong"
