@@ -114,7 +114,14 @@ jobs:
                 "emptyActionValue": "N/A",
                 "emptyExpectedResultValue": "N/A",
                 "prefixTitle": false
-              }
+              },
+              "links": [
+                {
+                  "tagPrefix": "system_requirement",
+                  "targetType": "System Requirement",
+                  "relationship": "Tests"
+                }
+              ]
             }
           }
           EOF

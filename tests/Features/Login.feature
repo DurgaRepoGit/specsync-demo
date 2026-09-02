@@ -1,4 +1,4 @@
-@automated @system_requirement_1234 @brite_login
+@automated @system_requirement_253764 @brite_login
 Feature: User Login
   As a registered user
   I want to log in to the application
