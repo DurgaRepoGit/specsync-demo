@@ -20,7 +20,7 @@ jobs:
     with:
       test_directory: tests
       project_url: https://dev.azure.com/ADSP-Org-A03/CII-Surveillance
-      mock: ${{ inputs.mock }}
+      mock: ${{ inputs.mock || false }}
     secrets:
       SPECSYNC_PERSONAL_ACCESS_TOKEN: ${{ secrets.SPECSYNC_PERSONAL_ACCESS_TOKEN }}
       SPECSYNC_LICENSE_KEY: ${{ secrets.SPECSYNC_LICENSE_KEY }}
