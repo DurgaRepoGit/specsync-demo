@@ -104,6 +104,7 @@ jobs:
           {
             "$schema": "https://schemas.specsolutions.eu/specsync4azuredevops-config-latest.json",
             "compatibilityVersion": "${{ inputs.specsync_azuredevops_version }}",
+            "toolSettings": { "licensePath": "specsync.lic" },
             "remote": { "projectUrl": "${{ inputs.project_url }}" },
             "local":  { "tags": "${{ inputs.local_tags }}" },
             "synchronization": {
