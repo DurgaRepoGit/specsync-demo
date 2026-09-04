@@ -98,6 +98,11 @@ jobs:
         with:
           dotnet-version: ${{ inputs.dotnet_version }}
 
+      - name: Create SpecSync license file
+        if: ${{ !inputs.mock }}
+        run: |
+          echo "${{ secrets.SPECSYNC_LICENSE_KEY }}" > ${{ inputs.test_directory }}/specsync.lic
+
       - name: Create SpecSync configuration
         run: |
           cat > ${{ inputs.test_directory }}/specsync_create_tests.json << 'EOF'
