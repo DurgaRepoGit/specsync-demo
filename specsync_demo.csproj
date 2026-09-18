@@ -1,0 +1,67 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<LangVersion>latest</LangVersion>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<IsPackable>false</IsPackable>
+		<!-- Keeps code-behind files updated during compilation -->
+		<ReqnrollGenerateAssemblyHooks>false</ReqnrollGenerateAssemblyHooks>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <Compile Remove="Feature\**" />
+	  <EmbeddedResource Remove="Feature\**" />
+	  <None Remove="Feature\**" />
+	  <ReqnrollFeatureFile Remove="Feature\**" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ReqnrollFeatureFile Remove="tests\features\ConfigDashboardLogin.feature" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="coverlet.collector" Version="6.0.4" />
+		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.0" />
+		<PackageReference Include="Microsoft.Playwright" Version="1.62.0" />
+		<PackageReference Include="NUnit" Version="4.3.2" />
+		<PackageReference Include="NUnit.Analyzers" Version="4.7.0" />
+		<PackageReference Include="NUnit3TestAdapter" Version="5.0.0" />
+		<PackageReference Include="Reqnroll" Version="3.3.4" />
+		<PackageReference Include="Reqnroll.NUnit" Version="3.3.4" />
+		<PackageReference Include="Reqnroll.Tools.MsBuild.Generation" Version="3.3.4" />
+		<!-- SpecSync for Azure DevOps / Jira sync (if applicable) -->
+		<!--<PackageReference Include="SpecSync.AzureDevOps" Version="3.4.0"/>-->
+	</ItemGroup>
+
+	<!-- Tells MSBuild to map .feature files to .feature.cs code-behind -->
+	<ItemGroup>
+		<None Update="**\*.feature">
+			<CodeBehindFile>%(RelativeDir)%(Filename).feature.cs</CodeBehindFile>
+		</None>
+	</ItemGroup>
+
+	<ItemGroup>
+		<Using Include="NUnit.Framework" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ReqnrollObsoleteCodeBehindFiles Remove="Feature\**" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ReqnrollLegacyCodeBehindFiles Remove="Feature\**" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Remove="tests\Features\ConfigDashboardLogin.feature" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Content Include="tests\Features\ConfigDashboardLogin.feature">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </Content>
+	</ItemGroup>
+
+</Project>
