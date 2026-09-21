@@ -4,6 +4,7 @@ Feature: User Authentication
 	I want to log in to the application
 	So that i can access my dashboard
 
+	@TestCaseId_485642
 	@capsule_login_success
 	Scenario: Successful login with valid credentials
 		Given I navigate to the login page
