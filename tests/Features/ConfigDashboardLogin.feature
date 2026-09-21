@@ -1,4 +1,4 @@
-@automated @system_requirement_253764 @capsule_login
+@automated @system_requirement_253764 @capsule_login @brite_capsule_login
 Feature: User Authentication
 	As a register user
 	I want to log in to the application
