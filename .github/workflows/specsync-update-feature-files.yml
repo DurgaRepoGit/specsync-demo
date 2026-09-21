@@ -121,7 +121,7 @@ jobs:
 
       - name: Setup SpecSync as local tool
         run: |
-          dotnet new tool-manifest
+          dotnet new tool-manifest --force
           dotnet tool install SpecSync.AzureDevOps --version "${{ inputs.specsync_azuredevops_version }}"
           dotnet tool restore
           dotnet specsync version
