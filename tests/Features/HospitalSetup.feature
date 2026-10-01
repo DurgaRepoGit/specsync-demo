@@ -13,6 +13,7 @@ Feature: Hospital Setup
     Then I should be redirected to the dashboard page
     And I navigate to the Hospital Setup page
 
+	@TestCaseId_487322
 	@capsule_addUnit
 	Scenario: Attempt to create a unit with a duplicate name
     When I click the Add Unit button
@@ -26,6 +27,7 @@ Feature: Hospital Setup
     And I click the Save button
     Then an error message indicating duplicate unit names should be displayed
 
+    @TestCaseId_487323
     @capsule_deleteUnit
     Scenario: Delete unit confirmation, cancellation, and validation with assigned locations
     When I select the check box for unit "Engineering" in the Units table

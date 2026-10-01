@@ -15,6 +15,7 @@ Feature: User Authentication
         Then I should be redirected to the dashboard page
         And I should see the dashboard welcome message
 
+	@TestCaseId_487321
 	@capsule_login_success_API
 	Scenario: Successfully retrieve ASP.NET Core auth cookie with valid credentials
         Given I set up the API request context
