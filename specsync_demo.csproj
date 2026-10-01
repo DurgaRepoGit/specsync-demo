@@ -19,6 +19,7 @@
 
 	<ItemGroup>
 	  <ReqnrollFeatureFile Remove="tests\features\ConfigDashboardLogin.feature" />
+	  <ReqnrollFeatureFile Remove="tests\features\HospitalSetup.feature" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -56,10 +57,14 @@
 
 	<ItemGroup>
 	  <None Remove="tests\Features\ConfigDashboardLogin.feature" />
+	  <None Remove="tests\Features\HospitalSetup.feature" />
 	</ItemGroup>
 
 	<ItemGroup>
 	  <Content Include="tests\Features\ConfigDashboardLogin.feature">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </Content>
+	  <Content Include="tests\Features\HospitalSetup.feature">
 	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	  </Content>
 	</ItemGroup>
