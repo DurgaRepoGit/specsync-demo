@@ -28,23 +28,23 @@ namespace specsync_demo.tests.Hooks
 
             _browser = await _playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
             {
-                // 1. Mandatory for msvsmon / non-interactive AWS sessions
+                //Mandatory for msvsmon / non-interactive AWS sessions
                 Headless = true,
 
-                // 2. Prevent infinite deadlocks
+                //Prevent infinite deadlocks
                 Timeout = 15000,
 
-                // 3. Essential flags for AWS remote execution
+                //Essential flags for AWS remote execution
                 Args = new[]
                 {
-                    "--no-sandbox",
-                    "--disable-setuid-sandbox",
-                    "--disable-gpu",
-                    "--ignore-certificate-errors"
+                    "--no-sandbox", //Disables the OS-level browser sandbox security container
+                    "--disable-setuid-sandbox", //afe to include alongside --no-sandbox for cross-platform compatibility.
+                    "--disable-gpu", //Disables Hardware Graphics Acceleration (GPU)
+                    "--ignore-certificate-errors" //Ignores SSL/TLS certificate warnings
                 }
             });
 
-            // 1. Get today's date formatted as YYYY-MM-DD
+            //Get today's date formatted as YYYY-MM-DD
             string dateFolder = DateTime.Now.ToString("yyyy-MM-dd");
 
             // Specify a fixed, absolute directory for all test execution videos
@@ -66,8 +66,18 @@ namespace specsync_demo.tests.Hooks
         [AfterScenario]
         public async Task TearDown()
         {
+            string originalVideoPath = null;
             try
             {
+                // Get the generated video path before closing the page/context
+                if (_page != null)
+                {
+                    var video = _page.Video;
+                    if (video != null)
+                    {
+                        originalVideoPath = await video.PathAsync();
+                    }
+                }
                 // Closing context flushes the video file to disk
                 if (_context != null)
                 {
@@ -77,6 +87,27 @@ namespace specsync_demo.tests.Hooks
                 if (_browser != null)
                 {
                     await _browser.CloseAsync();
+                }
+
+                // Rename the video file after context is closed
+                if (!string.IsNullOrEmpty(originalVideoPath) && File.Exists(originalVideoPath))
+                {
+                    string directory = Path.GetDirectoryName(originalVideoPath);
+
+                    // Clean scenario title to ensure it's a valid Windows filename
+                    string scenarioName = _scenarioContext.ScenarioInfo.Title;
+                    string safeFileName = string.Concat(scenarioName.Split(Path.GetInvalidFileNameChars())) + ".webm";
+
+                    string newVideoPath = Path.Combine(directory, safeFileName);
+
+                    // Overwrite if a video with the same test name already exists
+                    if (File.Exists(newVideoPath))
+                    {
+                        File.Delete(newVideoPath);
+                    }
+
+                    File.Move(originalVideoPath, newVideoPath);
+                    Console.WriteLine($"Saved video recording to: {newVideoPath}");
                 }
             }
             catch (Exception ex)

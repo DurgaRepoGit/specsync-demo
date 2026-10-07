@@ -8,11 +8,11 @@ namespace specsync_demo.tests.StepDefinitions
     [Binding]
     public class LoginStepDefinitions
     {
-        private IPlaywright _playwright;
-        private IAPIRequestContext _apiRequestContext;
-        private IAPIResponse _response;
+        private IPlaywright _playwright; //It manages the browser drivers and API request contexts.
+        private IAPIRequestContext _apiRequestContext; //A HTTP client provided by Playwright to send REST/HTTP requests
+        private IAPIResponse _response; //Stores the HTTP response returned from an API call
         public string AuthCookieValue { get; private set; }
-        private readonly IPage _page;
+        private readonly IPage _page; //The active browser page instance
         private static readonly string MachineName = Environment.MachineName.ToLower();
         private readonly string _baseUrl = $"https://{MachineName}/configurationdashboard";
 
@@ -26,6 +26,8 @@ namespace specsync_demo.tests.StepDefinitions
         {
             _page = scenarioContext.Get<IPage>();
         }
+
+        #region API Login Steps
 
         [Given(@"I set up the API request context")]
         public async Task GivenISetUpTheAPIRequestContext()
@@ -77,7 +79,7 @@ namespace specsync_demo.tests.StepDefinitions
         [Then(@"the response should drop the ""(.*)"" authentication cookie")]
         public async Task ThenTheResponseShouldDropTheAuthenticationCookie(string cookieName)
         {
-            // StorageStateAsync() returns a JSON string
+            // StorageStateAsync() returns a JSON string and stores all active cookies, local storage, and session state captured from recent requests
             var storageStateJson = await _apiRequestContext.StorageStateAsync();
             using var jsonDocument = JsonDocument.Parse(storageStateJson);
             var root = jsonDocument.RootElement;
@@ -103,6 +105,10 @@ namespace specsync_demo.tests.StepDefinitions
             AuthCookieValue = foundCookieValue;
             Assert.That(AuthCookieValue, Is.Not.Empty, $"The '{cookieName}' value was empty.");
         }
+
+        #endregion
+
+        #region UI Login Steps
 
         [Given(@"I navigate to the login page$")]
         public async Task GivenINavigateToTheLoginPage()
@@ -143,6 +149,9 @@ namespace specsync_demo.tests.StepDefinitions
 
             Assert.That(await navTabsElement.IsVisibleAsync(), Is.True);
         }
+
+        #endregion
+
         [AfterScenario("@api")]
         public async Task TearDown()
         {

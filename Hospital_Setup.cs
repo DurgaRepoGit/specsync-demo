@@ -20,7 +20,8 @@ namespace specsync_demo.tests.StepDefinitions
         {
             _page = scenarioContext.Get<IPage>();
         }
-        
+
+        //StepDefintion is a flexible attribute in Reqnroll that matches Given, When, or Then steps
         [StepDefinition(@"I navigate to the Hospital Setup page")]
         public async Task GivenINavigateToTheHospitalSetupPage()
         {
