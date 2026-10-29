@@ -20,10 +20,12 @@
 	<ItemGroup>
 	  <ReqnrollFeatureFile Remove="tests\features\ConfigDashboardLogin.feature" />
 	  <ReqnrollFeatureFile Remove="tests\features\HospitalSetup.feature" />
+	  <ReqnrollFeatureFile Remove="tests\features\PatientManagement.feature" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="coverlet.collector" Version="6.0.4" />
+		<PackageReference Include="Microsoft.Data.SqlClient" Version="7.1.1" />
 		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.0" />
 		<PackageReference Include="Microsoft.Playwright" Version="1.62.0" />
 		<PackageReference Include="NUnit" Version="4.3.2" />
@@ -58,6 +60,7 @@
 	<ItemGroup>
 	  <None Remove="tests\Features\ConfigDashboardLogin.feature" />
 	  <None Remove="tests\Features\HospitalSetup.feature" />
+	  <None Remove="tests\Features\PatientManagement.feature" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -65,6 +68,9 @@
 	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	  </Content>
 	  <Content Include="tests\Features\HospitalSetup.feature">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </Content>
+	  <Content Include="tests\Features\PatientManagement.feature">
 	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	  </Content>
 	</ItemGroup>

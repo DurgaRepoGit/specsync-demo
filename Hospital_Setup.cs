@@ -1,5 +1,6 @@
 ﻿using Microsoft.Playwright;
 using NUnit.Framework;
+using specsync_demo.tests.Helpers;
 using Reqnroll;
 
 namespace specsync_demo.tests.StepDefinitions
@@ -8,6 +9,7 @@ namespace specsync_demo.tests.StepDefinitions
     public class Hospital_Setup
     {
         private readonly IPage _page;
+        private readonly AuthenticationHelper _authHelper;
         private static readonly string MachineName = Environment.MachineName.ToLower();
         private static readonly string BaseUrl = $"https://{MachineName}/configurationdashboard";
 
@@ -16,9 +18,17 @@ namespace specsync_demo.tests.StepDefinitions
             public string Username { get; set; }
             public string Password { get; set; }
         }
-        public Hospital_Setup(ScenarioContext scenarioContext)
+        // Reqnroll/BoDi automatically injects both the page and the authentication helper
+        public Hospital_Setup(ScenarioContext scenarioContext, AuthenticationHelper authHelper)
         {
             _page = scenarioContext.Get<IPage>();
+            _authHelper = authHelper;
+        }
+
+        [Given(@"I log in as ""(.*)"" with password ""(.*)""")]
+        public async Task GivenILogInAsWithPassword(string username, string password)
+        {
+            await _authHelper.LoginAsync(_page, BaseUrl, username, password);
         }
 
         //StepDefintion is a flexible attribute in Reqnroll that matches Given, When, or Then steps

@@ -5,13 +5,15 @@ Feature: Hospital Setup
 	So that unit names remain unique across the system
 
 	Background:
-    Given I navigate to the login page
-    When I enter valid credentials
-      | Username | Password |
-      | bernoulli    | CPC_01 |
-    And I click the login button
-    Then I should be redirected to the dashboard page
+    Given I log in as "bernoulli" with password "CPC_01"
     And I navigate to the Hospital Setup page
+   # Given I navigate to the login page
+   # When I enter valid credentials
+   #   | Username | Password |
+   #  | bernoulli    | CPC_01 |
+   # And I click the login button
+   # Then I should be redirected to the dashboard page
+   # And I navigate to the Hospital Setup page
 
 	@TestCaseId_487322
 	@capsule_addUnit
